@@ -1,0 +1,144 @@
+/* Center the form on screen */
+body {
+  margin: 0;
+  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* Main wrapper */
+.wrapper {
+  position: relative;
+  width: 420px; 
+  height: auto;
+  margin: 100px auto;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: white;
+  display: flex;
+  align-items: center;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Form container */
+.wrapper .form-box {
+  width: 100%;
+  padding: 40px;
+}
+
+/* Title */
+form h1 {
+  font-size: 42px; 
+  text-align: center;
+  margin-bottom: 20px;
+
+}
+
+/* Input container */
+form .input-box {
+  position: relative;
+  width: 100%;
+  height: 50px;
+  margin: 20px 0;
+}
+
+/* Input field */
+.input-box input {
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  border: none;
+  outline: none;
+  border-radius: 30px;
+  font-size: 16px;
+  color: #fff;
+  padding: 0 20px;
+}
+
+/* Placeholder */
+.input-box input::placeholder {
+  color: #ddd;
+}
+
+/* Icon */
+.form-box .icon {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Remember + Forgot */
+form .remember-forgot {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin: 10px 0 20px;
+}
+
+.remember-forgot a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.remember-forgot a:hover {
+  text-decoration: underline;
+}
+
+/* Button */
+form button {
+  width: 100%;
+  height: 45px;
+  background: white;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 16px;
+  color: #2a5298;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+form button:hover {
+  transform: scale(1.05);
+  background: #f0f0f0;
+}
+
+/* Register link */
+form .register-link {
+  font-size: 14px;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.register-link a {
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.register-link a:hover {
+  text-decoration: underline;
+}
+
+/* Fix for the disappearing section */
+.container {
+    width: 100vw;
+    min-height: 200vh;
+    height: auto; 
+    background: rgb(6, 241, 163);
+    overflow-y: auto;
+    padding-bottom: 50px; 
+}
+
+/* Optional: Styling for the new textareas */
+textarea {
+    border: 2px solid #ccc;
+    font-family: inherit;
+    resize: none; /* Prevents user from breaking layout */
+}
+
+textarea:focus {
+    border-color: #0ec91d;
+    outline: none;
+}
