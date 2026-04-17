@@ -2,92 +2,152 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const app = express();
-app.use(cors());
+
+app.use(cors({
+  origin: process.env.CLIENT_URL,
+  credentials: true
+}));
 app.use(express.json());
 
-// ================= DATABASE =================
-mongoose.connect("mongodb://127.0.0.1:27017/whiteboard", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+const PORT = process.env.PORT || 5000;
+const MONGODB_URI = process.env.MONGODB_URI;
+const JWT_SECRET = process.env.JWT_SECRET;
 
-// ================= MODELS =================
+if (!MONGODB_URI) throw new Error("Missing MONGODB_URI");
+if (!JWT_SECRET) throw new Error("Missing JWT_SECRET");
+
+await mongoose.connect(MONGODB_URI);
+
 const UserSchema = new mongoose.Schema({
-  name: String,
-  email: String,
-  password: String,
-  role: { type: String, default: "user" } // admin or user
-});
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: { type: String, enum: ["admin", "user"], default: "user" }
+}, { timestamps: true });
 
 const BoardSchema = new mongoose.Schema({
-  title: String,
-  users: [String],
-  createdAt: { type: Date, default: Date.now }
-});
+  title: { type: String, required: true },
+  users: [{ type: String }],
+}, { timestamps: true });
 
 const User = mongoose.model("User", UserSchema);
 const Board = mongoose.model("Board", BoardSchema);
 
-// ================= AUTH =================
-const SECRET = "secret123";
+function createToken(user) {
+  return jwt.sign(
+    { id: user._id, role: user.role },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+}
+
+function auth(req, res, next) {
+  const header = req.headers.authorization;
+  if (!header?.startsWith("Bearer ")) {
+    return res.status(401).json({ msg: "No token provided" });
+  }
+
+  const token = header.split(" ")[1];
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({ msg: "Invalid token" });
+  }
+}
+
+function adminOnly(req, res, next) {
+  if (req.user?.role !== "admin") {
+    return res.status(403).json({ msg: "Admin only" });
+  }
+  next();
+}
+
+app.get("/api/health", (req, res) => {
+  res.json({ ok: true });
+});
 
 app.post("/api/register", async (req, res) => {
-  const user = await User.create(req.body);
-  res.json(user);
+  try {
+    const { name, email, password, role } = req.body;
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json({ msg: "Email already in use" });
+
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role
+    });
+
+    const token = createToken(user);
+    res.status(201).json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ msg: "Registration failed", error: err.message });
+  }
 });
 
 app.post("/api/login", async (req, res) => {
-  const user = await User.findOne(req.body);
-  if (!user) return res.status(401).json({ msg: "Invalid credentials" });
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email, password });
+    if (!user) return res.status(401).json({ msg: "Invalid credentials" });
 
-  const token = jwt.sign({ id: user._id, role: user.role }, SECRET);
-  res.json({ token, user });
+    const token = createToken(user);
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ msg: "Login failed", error: err.message });
+  }
 });
 
-// ================= USERS =================
-app.get("/api/users", async (req, res) => {
-  const users = await User.find();
+app.get("/api/users", auth, adminOnly, async (req, res) => {
+  const users = await User.find().select("-password");
   res.json(users);
 });
 
-app.delete("/api/users/:id", async (req, res) => {
+app.delete("/api/users/:id", auth, adminOnly, async (req, res) => {
   await User.findByIdAndDelete(req.params.id);
   res.json({ msg: "User deleted" });
 });
 
-// ================= BOARDS =================
-app.post("/api/boards", async (req, res) => {
-  const board = await Board.create(req.body);
-  res.json(board);
+app.post("/api/boards", auth, async (req, res) => {
+  try {
+    const board = await Board.create({
+      title: req.body.title,
+      users: req.body.users || []
+    });
+    res.status(201).json(board);
+  } catch (err) {
+    res.status(500).json({ msg: "Board creation failed", error: err.message });
+  }
 });
 
-app.get("/api/boards", async (req, res) => {
+app.get("/api/boards", auth, async (req, res) => {
   const boards = await Board.find();
   res.json(boards);
 });
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// MongoDB Connection
-mongoose.connect("mongodb://127.0.0.1:27017/whiteboardDB", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
-
-// Schema
-const UserSchema = new mongoose.Schema({
-  username: String,
-  isOnline: Boolean,
-  lastActive: { type: Date, default: Date.now },
-});
-
-const User = mongoose.model("User", UserSchema);
-// ================= START =================
-app.listen(5000, () => console.log("Server running on port 5000"));
