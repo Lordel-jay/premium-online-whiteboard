@@ -2,53 +2,75 @@ import { useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 
 const Whiteboard = () => {
+  const canvasRef = useRef(null);
   const socketRef = useRef(null);
+  const drawing = useRef(false);
 
   useEffect(() => {
     const API_URL = import.meta.env.VITE_API_URL;
 
-    // Safety check
-    if (!API_URL) {
-      console.error(" VITE_API_URL is missing. Check your Vercel environment variables.");
-      return;
-    }
-
-    //  Initialize socket safely
     socketRef.current = io(API_URL, {
       transports: ["websocket"],
-      withCredentials: true,
     });
 
-    // Connection events
-    socketRef.current.on("connect", () => {
-      console.log("Connected to socket:", socketRef.current.id);
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "black";
+
+    const getPos = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      };
+    };
+
+    const start = (e) => {
+      drawing.current = true;
+      const { x, y } = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+
+      socketRef.current.emit("draw-start", { x, y });
+    };
+
+    const draw = (e) => {
+      if (!drawing.current) return;
+
+      const { x, y } = getPos(e);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+
+      socketRef.current.emit("draw", { x, y });
+    };
+
+    const stop = () => {
+      drawing.current = false;
+      ctx.beginPath();
+    };
+
+    canvas.addEventListener("mousedown", start);
+    canvas.addEventListener("mousemove", draw);
+    canvas.addEventListener("mouseup", stop);
+    canvas.addEventListener("mouseleave", stop);
+
+    socketRef.current.on("draw", ({ x, y }) => {
+      ctx.lineTo(x, y);
+      ctx.stroke();
     });
 
-    socketRef.current.on("connect_error", (err) => {
-      console.error(" Socket connection error:", err.message);
-    });
-
-    //  Example: listen for drawing updates
-    socketRef.current.on("draw", (data) => {
-      console.log("📡 Drawing data received:", data);
-      // handle drawing logic here
-    });
-
-    //  Cleanup on unmount
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        console.log("🔌 Socket disconnected");
-      }
+      socketRef.current.disconnect();
     };
   }, []);
 
-  return (
-    <div>
-      <h2>Whiteboard</h2>
-      {/* Your canvas / UI goes here */}
-    </div>
-  );
+  return <canvas ref={canvasRef} style={{ display: "block" }} />;
 };
 
 export default Whiteboard;
