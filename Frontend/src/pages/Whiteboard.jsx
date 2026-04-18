@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
-import "./Whiteboard.css";
+import "./whiteboard.css";
 
 const Whiteboard = () => {
   const canvasRef = useRef(null);
