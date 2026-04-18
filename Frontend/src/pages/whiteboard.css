@@ -1,0 +1,119 @@
+/* Background */
+body {
+  margin: 0;
+  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* MAIN CONTAINER */
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+
+/* CONTENT BELOW NAVBAR */
+.main {
+  display: flex;
+  height: 80vh;
+  padding: 10px;
+  gap: 10px;
+}
+
+/* 🎨 WHITEBOARD SECTION (75%) */
+.whiteboard-section {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: rgb(248, 248, 248);
+}
+
+/* TOOLBAR (eraser, color, undo) */
+.toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+/* CANVAS */
+.canvas {
+  flex: 2;
+  border-radius: 20px;
+  background: rgba(252, 8, 158, 0.1);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  height: 100%;
+}
+
+/* 📌 SIDEBAR (25%) */
+.sidebar {
+  width: 25%;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* SECTIONS */
+.section {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  padding: 10px;
+  color: white;
+  backdrop-filter: blur(10px);
+  background-color: rgb(112, 219, 153);
+}
+
+/* CHAT BOX */
+.box {
+  height: 120px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  
+}
+
+/* INPUT */
+.input {
+  width: 100%;
+  height: 35px;
+  border-radius: 20px;
+  border: none;
+  padding: 0 10px;
+  margin-bottom: 5px;
+  ;
+}
+
+/* BUTTON */
+.button {
+  width: 100%;
+  height: 35px;
+  border-radius: 20px;
+  border: none;
+  background: white;
+  color: #2a5298;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* TOOL BUTTONS */
+.tool-btn {
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: none;
+  background: rgb(52, 211, 131);
+  color: #2a5298;
+  cursor: pointer;
+ 
+}
+
+/* LOGOUT */
+.logout-btn {
+  margin-top: auto;
+  height: 80px;
+  border-radius: 20px;
+  border: none;
+  background: white;
+  color: #2a5298;
+  font-weight: bold;
+  cursor: pointer;
+}
