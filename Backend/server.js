@@ -17,7 +17,7 @@ app.use(express.json());
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://your-actual-vercel-app.vercel.app" // 🔁 REPLACE THIS
+    "https://premium-online-whiteboard-w9es-8hgj1kdpe-lordel-jays-projects.vercel.app"
   ],
   credentials: true
 }));
@@ -33,10 +33,10 @@ const server = http.createServer(app);
 // ✅ FIXED Socket.IO CORS
 const io = new Server(server, {
   cors: {
-    origin: [
-      "http://localhost:5173",
-      "https://premium-online-whiteboard-2.onrender.com" 
-    ],
+origin: [
+  "http://localhost:5173",
+  "https://premium-online-whiteboard-w9es-8hgj1kdpe-lordel-jays-projects.vercel.app"
+] ,
     methods: ["GET", "POST"],
   },
 });
