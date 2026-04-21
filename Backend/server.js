@@ -6,75 +6,73 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import user from "./models/user.js";
+import User from "./models/user.js"; // ✅ FIXED
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
 
-// ✅ CORS
+// ✅ FIXED CORS (IMPORTANT)
 app.use(cors({
-  origin: ["http://localhost:5173"],
-  methods: ["GET", "POST"]
+  origin: [
+    "http://localhost:5173",
+    "https://your-actual-vercel-app.vercel.app" // 🔁 REPLACE THIS
+  ],
+  credentials: true
 }));
 
-// ✅ MongoDB (OPTIONAL - keep commented if not running)
-/*
+// ✅ MongoDB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
   .catch(err => console.error(err));
-*/
 
-// ✅ HTTP server
+// HTTP server
 const server = http.createServer(app);
 
-// ✅ Socket.IO
+// ✅ FIXED Socket.IO CORS
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173"],
+    origin: [
+      "http://localhost:5173",
+      "https://premium-online-whiteboard-2.onrender.com" 
+    ],
     methods: ["GET", "POST"],
   },
 });
 
-// ✅ ALL SOCKET LOGIC MUST BE INSIDE HERE
+// SOCKET LOGIC
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // DRAW START
   socket.on("draw-start", (data) => {
     socket.broadcast.emit("draw-start", data);
   });
 
-  // DRAW
   socket.on("draw", (data) => {
     socket.broadcast.emit("draw", data);
   });
 
-  // CHAT
   socket.on("chat-message", (msg) => {
     socket.broadcast.emit("chat-message", msg);
   });
 
-  // COMMENTS
   socket.on("new-comment", (comment) => {
     socket.broadcast.emit("new-comment", comment);
   });
 
-  // DISCONNECT
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
 });
 
-// ================= AUTH ROUTES =================
+// ================= AUTH =================
 
-// ✅ Register
+// REGISTER
 app.post("/api/register", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // ⚠️ If Mongo is OFF, skip DB logic
     if (!mongoose.connection.readyState) {
       return res.json({ message: "Registered (dummy mode)" });
     }
@@ -86,26 +84,26 @@ app.post("/api/register", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = new User({
+    const newUser = new User({   // ✅ renamed
       email,
       password: hashedPassword,
     });
 
-    await user.save();
+    await newUser.save();
 
     res.json({ message: "User registered successfully" });
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// ✅ Login (SAFE even if Mongo OFF)
+// LOGIN
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 🔥 FALLBACK (if Mongo not running)
     if (!mongoose.connection.readyState) {
       return res.json({
         token: "dummy-token",
@@ -113,18 +111,18 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email });
-    if (!user) {
+    const foundUser = await User.findOne({ email }); // ✅ renamed
+    if (!foundUser) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, foundUser.password);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
     const token = jwt.sign(
-      { id: user._id },
+      { id: foundUser._id },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
@@ -135,11 +133,12 @@ app.post("/api/login", async (req, res) => {
     });
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// ================= BASIC ROUTES =================
+// ================= ROUTES =================
 
 app.get("/", (req, res) => {
   res.send("Whiteboard backend running");
@@ -155,6 +154,4 @@ const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-
-  
 });
