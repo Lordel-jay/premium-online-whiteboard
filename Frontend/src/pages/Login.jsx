@@ -9,40 +9,52 @@ function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  // ✅ Use deployed backend URL
+  const API_BASE_URL =
+    import.meta.env.VITE_API_URL ||
+    "https://premium-online-whiteboard-2.onrender.com";
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
     try {
       const res = await fetch(`${API_BASE_URL}/api/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ email, password }),
       });
 
-      // Get the response data
-      const data = await res.json().catch(() => ({ message: "Server sent invalid response" }));
+      const data = await res.json().catch(() => ({
+        message: "Invalid server response",
+      }));
 
       if (!res.ok) {
-        // If the server sent a message, use it; otherwise, default to a generic error
         throw new Error(data.message || `Error: ${res.status}`);
       }
 
-      // Success Logic
+      // ✅ Store user data
       localStorage.setItem("token", data.token);
-      localStorage.setItem("userName", data.userName || email.split("@")[0]);
-      
-      console.log("Login successful, navigating...");
+      localStorage.setItem(
+        "userName",
+        data.userName || email.split("@")[0]
+      );
+
+      console.log("Login successful");
       navigate("/dashboard");
 
     } catch (err) {
-      console.error("Frontend Login Error:", err.message);
-      setError(err.message.includes("Failed to fetch") 
-        ? "Cannot connect to server. Is the backend running on port 5000?" 
-        : err.message);
+      console.error("Login Error:", err);
+
+      // ✅ Better error messages
+      if (err.message.includes("Failed to fetch")) {
+        setError("Cannot connect to server. Please try again in a moment.");
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -53,14 +65,31 @@ function Login() {
       <div className="form-box login">
         <form onSubmit={handleSubmit}>
           <h1>Login</h1>
-          {error && <div className="error-message" style={errorStyle}>{error}</div>}
-          
+
+          {error && (
+            <div className="error-message" style={errorStyle}>
+              {error}
+            </div>
+          )}
+
           <div className="input-box">
-            <input type="email" placeholder="Email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input
+              type="email"
+              placeholder="Email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
 
           <div className="input-box">
-            <input type="password" placeholder="Password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+            <input
+              type="password"
+              placeholder="Password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
 
           <button type="submit" disabled={loading}>
@@ -79,7 +108,7 @@ const errorStyle = {
   borderRadius: "5px",
   marginBottom: "1rem",
   fontSize: "14px",
-  textAlign: "center"
+  textAlign: "center",
 };
 
 export default Login;
