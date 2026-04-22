@@ -16,10 +16,8 @@ app.use(express.json());
 
 // ✅ CORS
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://premium-online-whiteboard-w9es-8hgj1kdpe-lordel-jays-projects.vercel.app"
-  ],
+  origin: "https://premium-online-whiteboard-w9es-rammibver-lordel-jays-projects.vercel.app",
+  methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
 
