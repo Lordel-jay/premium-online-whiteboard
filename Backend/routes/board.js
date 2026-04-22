@@ -1,29 +1,37 @@
-const express = require("express");
+import express from "express";
+import authMiddleware from "../middleware/auth.js";
+//import Board from "../models/Board.js";
+import fs from "fs";
+console.log("Middleware exists:", fs.existsSync("../middleware/auth.js"));
+
 const router = express.Router();
-const Board = require("../models/Board");
 
-router.post("/save", async(req,res)=>{
+router.post("/save", authMiddleware, async (req, res) => {
+  try {
+    const { title, data } = req.body;
 
- const {title,data,createdBy} = req.body;
+    const board = new Board({
+      title,
+      data,
+      createdBy: req.user.id,
+    });
 
- const board = new Board({
-  title,
-  data,
-  createdBy
- });
+    await board.save();
+    res.json({ message: "Board saved" });
 
- await board.save();
-
- res.json({message:"Board saved"});
+  } catch (err) {
+    res.status(500).json({ message: "Error saving board" });
+  }
 });
 
+router.get("/all", authMiddleware, async (req, res) => {
+  try {
+    const boards = await Board.find({ createdBy: req.user.id });
+    res.json(boards);
 
-router.get("/all", async(req,res)=>{
-
- const boards = await Board.find();
-
- res.json(boards);
-
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching boards" });
+  }
 });
 
-module.exports = router;
+export default router;

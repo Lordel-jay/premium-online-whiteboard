@@ -6,14 +6,15 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import User from "./models/user.js"; // ✅ FIXED
+import User from "./models/user.js";
+import boardRoutes from "./routes/board.js";
 
 dotenv.config();
 
-const app = express();
+const app = express(); // ✅ FIRST
 app.use(express.json());
 
-// ✅ FIXED CORS (IMPORTANT)
+// ✅ CORS
 app.use(cors({
   origin: [
     "http://localhost:5173",
@@ -22,49 +23,8 @@ app.use(cors({
   credentials: true
 }));
 
-// ✅ MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch(err => console.error(err));
-
-// HTTP server
-const server = http.createServer(app);
-
-// ✅ FIXED Socket.IO CORS
-const io = new Server(server, {
-  cors: {
-origin: [
-  "http://localhost:5173",
-  "https://premium-online-whiteboard-w9es-8hgj1kdpe-lordel-jays-projects.vercel.app"
-] ,
-    methods: ["GET", "POST"],
-  },
-});
-
-// SOCKET LOGIC
-io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
-
-  socket.on("draw-start", (data) => {
-    socket.broadcast.emit("draw-start", data);
-  });
-
-  socket.on("draw", (data) => {
-    socket.broadcast.emit("draw", data);
-  });
-
-  socket.on("chat-message", (msg) => {
-    socket.broadcast.emit("chat-message", msg);
-  });
-
-  socket.on("new-comment", (comment) => {
-    socket.broadcast.emit("new-comment", comment);
-  });
-
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
-});
+// ✅ ROUTES
+app.use("/api/whiteboard", boardRoutes);
 
 // ================= AUTH =================
 
@@ -73,10 +33,6 @@ app.post("/api/register", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!mongoose.connection.readyState) {
-      return res.json({ message: "Registered (dummy mode)" });
-    }
-
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
@@ -84,7 +40,7 @@ app.post("/api/register", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = new User({   // ✅ renamed
+    const newUser = new User({
       email,
       password: hashedPassword,
     });
@@ -92,9 +48,7 @@ app.post("/api/register", async (req, res) => {
     await newUser.save();
 
     res.json({ message: "User registered successfully" });
-
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -104,14 +58,7 @@ app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!mongoose.connection.readyState) {
-      return res.json({
-        token: "dummy-token",
-        message: "Login successful (dummy mode)",
-      });
-    }
-
-    const foundUser = await User.findOne({ email }); // ✅ renamed
+    const foundUser = await User.findOne({ email });
     if (!foundUser) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
@@ -127,28 +74,46 @@ app.post("/api/login", async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    res.json({
-      token,
-      message: "Login successful",
-    });
-
+    res.json({ token });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// ================= ROUTES =================
-
-app.get("/", (req, res) => {
-  res.send("Whiteboard backend running");
-});
-
-app.get("/health", (req, res) => {
-  res.json({ status: "ok" });
-});
-
 // ================= SERVER =================
+
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.error(err));
+
+const server = http.createServer(app);
+
+// SOCKET (we'll secure later if needed)
+const io = new Server(server, {
+  cors: {
+    origin: [
+      "http://localhost:5173",
+      "https://premium-online-whiteboard-w9es-8hgj1kdpe-lordel-jays-projects.vercel.app"
+    ],
+    methods: ["GET", "POST"],
+  },
+});
+
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
+  socket.on("draw", (data) => {
+    socket.broadcast.emit("draw", data);
+  });
+
+  socket.on("chat-message", (msg) => {
+    socket.broadcast.emit("chat-message", msg);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
 
 const PORT = process.env.PORT || 5000;
 

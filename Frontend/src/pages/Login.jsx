@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Auth.css";
 
@@ -9,10 +9,17 @@ function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // ✅ Use deployed backend URL
   const API_BASE_URL =
     import.meta.env.VITE_API_URL ||
     "https://premium-online-whiteboard-2.onrender.com";
+
+  //  AUTO LOGIN IF TOKEN EXISTS (fix refresh logout issue)
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/dashboard");
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,7 +43,7 @@ function Login() {
         throw new Error(data.message || `Error: ${res.status}`);
       }
 
-      // ✅ Store user data
+      //  STORE SESSION (persistent)
       localStorage.setItem("token", data.token);
       localStorage.setItem(
         "userName",
@@ -44,12 +51,11 @@ function Login() {
       );
 
       console.log("Login successful");
-      navigate("/dashboard");
 
+      navigate("/dashboard");
     } catch (err) {
       console.error("Login Error:", err);
 
-      // ✅ Better error messages
       if (err.message.includes("Failed to fetch")) {
         setError("Cannot connect to server. Please try again in a moment.");
       } else {
@@ -76,6 +82,7 @@ function Login() {
             <input
               type="email"
               placeholder="Email"
+              autoComplete="email"   
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -86,6 +93,7 @@ function Login() {
             <input
               type="password"
               placeholder="Password"
+              autoComplete="current-password" 
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}

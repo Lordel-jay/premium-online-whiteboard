@@ -18,10 +18,17 @@ const Whiteboard = () => {
   const [comments, setComments] = useState([]);
   const [username, setUsername] = useState("");
 
+  // ✅ LOGOUT (FIXED POSITION)
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("token");
+
     if (!token) {
-      navigate("/");
+      navigate("/login");
       return;
     }
 
@@ -31,7 +38,10 @@ const Whiteboard = () => {
     const API_URL =
       import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-    socketRef.current = io(API_URL);
+    // ✅ SEND TOKEN TO BACKEND
+    socketRef.current = io(API_URL, {
+      auth: { token },
+    });
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -45,10 +55,7 @@ const Whiteboard = () => {
     let drawing = false;
 
     const saveState = () => {
-      setHistory((prev) => [
-        ...prev,
-        canvas.toDataURL()
-      ]);
+      setHistory((prev) => [...prev, canvas.toDataURL()]);
     };
 
     const start = (e) => {
@@ -67,14 +74,16 @@ const Whiteboard = () => {
     const draw = (e) => {
       if (!drawing) return;
 
-      ctx.strokeStyle = isErasing ? "#ffffff" : color;
+      const drawColor = isErasing ? "#ffffff" : color;
+
+      ctx.strokeStyle = drawColor;
       ctx.lineTo(e.offsetX, e.offsetY);
       ctx.stroke();
 
       socketRef.current.emit("draw", {
         x: e.offsetX,
         y: e.offsetY,
-        color: isErasing ? "#ffffff" : color,
+        color: drawColor,
       });
     };
 
@@ -83,11 +92,12 @@ const Whiteboard = () => {
       ctx.beginPath();
     };
 
+    // ✅ ADD EVENTS
     canvas.addEventListener("mousedown", start);
     canvas.addEventListener("mousemove", draw);
     canvas.addEventListener("mouseup", stop);
 
-    // DRAW SYNC
+    // ✅ SOCKET EVENTS
     socketRef.current.on("draw-start", ({ x, y }) => {
       ctx.beginPath();
       ctx.moveTo(x, y);
@@ -99,22 +109,25 @@ const Whiteboard = () => {
       ctx.stroke();
     });
 
-    // CHAT
     socketRef.current.on("chat-message", (msg) => {
       setChat((prev) => [...prev, msg]);
     });
 
-    // COMMENTS
     socketRef.current.on("new-comment", (cmt) => {
       setComments((prev) => [...prev, cmt]);
     });
 
+    // ✅ CLEANUP (VERY IMPORTANT)
     return () => {
+      canvas.removeEventListener("mousedown", start);
+      canvas.removeEventListener("mousemove", draw);
+      canvas.removeEventListener("mouseup", stop);
+
       socketRef.current.disconnect();
     };
-  }, []);
+  }, [color, isErasing]); // dependencies needed for correct drawing behavior
 
-  // CHAT SEND
+  // CHAT
   const sendMessage = () => {
     if (!message) return;
 
@@ -125,7 +138,7 @@ const Whiteboard = () => {
     setMessage("");
   };
 
-  // COMMENT ADD
+  // COMMENT
   const addComment = () => {
     if (!comment) return;
 
@@ -156,93 +169,77 @@ const Whiteboard = () => {
   };
 
   return (
-  <div className="container">
+    <div className="container">
+      <div className="main">
 
-   
+        {/* WHITEBOARD */}
+        <div className="whiteboard-section">
 
-    <div className="main">
+          <div className="toolbar">
+            <input
+              type="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+            />
 
-      {/* WHITEBOARD SIDE */}
-      <div className="whiteboard-section">
+            <button onClick={() => setIsErasing(!isErasing)}>
+              {isErasing ? "Draw" : "Eraser"}
+            </button>
 
-        {/* TOOLBAR */}
-        <div className="toolbar">
-          <input
-            type="color"
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-          />
-
-          <button
-            className="tool-btn"
-            onClick={() => setIsErasing(!isErasing)}
-          >
-            {isErasing ? "Draw" : "Eraser"}
-          </button>
-
-          <button className="tool-btn" onClick={undo}>
-            Undo
-          </button>
-        </div>
-
-        {/* CANVAS */}
-        <canvas ref={canvasRef} className="canvas" />
-      </div>
-
-      {/* SIDEBAR */}
-      <div className="sidebar">
-
-        {/* CHAT */}
-        <div className="section">
-          <h3>Chat</h3>
-          <div className="box">
-            {chat.map((msg, i) => (
-              <div key={i}>
-                <strong>{msg.user}:</strong> {msg.text}
-              </div>
-            ))}
+            <button onClick={undo}>Undo</button>
           </div>
 
-          <input
-            className="input"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-          />
-          <button className="button" onClick={sendMessage}>
-            Send
-          </button>
+          <canvas ref={canvasRef} className="canvas" />
         </div>
 
-        {/* COMMENTS */}
-        <div className="section">
-          <h3>Comments</h3>
-          <div className="box">
-            {comments.map((c, i) => (
-              <div key={i}>
-                <strong>{c.user}:</strong> {c.text}
-              </div>
-            ))}
+        {/* SIDEBAR */}
+        <div className="sidebar">
+
+          {/* CHAT */}
+          <div className="section">
+            <h3>Chat</h3>
+            <div className="box">
+              {chat.map((msg, i) => (
+                <div key={i}>
+                  <strong>{msg.user}:</strong> {msg.text}
+                </div>
+              ))}
+            </div>
+
+            <input
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+            />
+            <button onClick={sendMessage}>Send</button>
           </div>
 
-          <input
-            className="input"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-          />
-          <button className="button" onClick={addComment}>
-            Add
+          {/* COMMENTS */}
+          <div className="section">
+            <h3>Comments</h3>
+            <div className="box">
+              {comments.map((c, i) => (
+                <div key={i}>
+                  <strong>{c.user}:</strong> {c.text}
+                </div>
+              ))}
+            </div>
+
+            <input
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+            />
+            <button onClick={addComment}>Add</button>
+          </div>
+
+          {/* LOGOUT */}
+          <button className="logout-btn" onClick={handleLogout}>
+            Logout
           </button>
+
         </div>
-
-        {/* LOGOUT */}
-        <button className="logout-btn">
-          Logout
-        </button>
-
       </div>
     </div>
-  </div>
-);
+  );
 };
 
 export default Whiteboard;

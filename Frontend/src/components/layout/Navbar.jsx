@@ -1,6 +1,6 @@
 import React from "react";
 import "./Navbar.css";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import logo_light from "../../assets/logo-white.png";
 import logo_dark from "../../assets/logo-white.png";
@@ -10,15 +10,21 @@ import toggle_light from "../../assets/sun.png";
 import toggle_dark from "../../assets/moon.png";
 
 const Navbar = ({ theme, setTheme }) => {
+  const navigate = useNavigate();
+
+  const token = localStorage.getItem("token");
+
+  // ✅ FIXED THEME TOGGLE
   const toggle_mode = () => {
     theme === "light" ? setTheme("dark") : setTheme("light");
+  };
 
-    const handleLogout = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("userName");
-  window.location.href = "/";
-};
+  // ✅ PROPER LOGOUT FUNCTION
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userName");
 
+    navigate("/login"); // redirect properly
   };
 
   return (
@@ -31,10 +37,26 @@ const Navbar = ({ theme, setTheme }) => {
 
       <ul>
         <li><Link to="/">Home</Link></li>
-        <li><Link to="/dashboard">Dashboard</Link></li>
-        <li><Link to="/whiteboard/test">Whiteboard</Link></li>
-        <li><Link to="/login">Login</Link></li>
-        <li><Link to="/register">Registration</Link></li>
+
+        {token && (
+          <>
+            <li><Link to="/dashboard">Dashboard</Link></li>
+            <li><Link to="/whiteboard/test">Whiteboard</Link></li>
+          </>
+        )}
+
+        {!token && (
+          <>
+            <li><Link to="/login">Login</Link></li>
+            <li><Link to="/register">Registration</Link></li>
+          </>
+        )}
+
+        {token && (
+          <li onClick={handleLogout} style={{ cursor: "pointer", color: "red" }}>
+            Logout
+          </li>
+        )}
       </ul>
 
       <div className="search-box">
